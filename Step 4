@@ -1,0 +1,270 @@
+package connectfour
+
+fun main() {
+
+    val game = ConnectFour()
+    game.greeting()
+    game.printBoard()
+    game.playGame()
+}
+
+class ConnectFour {
+
+
+    private var firstPlayerName = "Unknown"
+    private var secondPlayerName = "Unknown"
+    private var rows = 6
+    private var columns = 7
+
+    var input = ""
+
+    var condition = "playing"
+
+    // List for printBoard
+    private val myList = mutableListOf<String>()
+
+    private val listOfIndeces: MutableList<MutableList<Int>> = mutableListOf()
+
+    // Array for indicating results of steps
+    private var resultArray = Array(columns) { StringBuilder("") }
+
+    // if true - first player's turn;  false - second player's turn
+    private var whoseTurn = true
+
+    fun greeting() {
+        println("Connect Four")
+        createFirstPlayer()
+    }
+
+    private fun createFirstPlayer() {
+        println("First player's name:")
+        firstPlayerName = readln()
+        createSecondPlayer()
+    }
+
+    private fun createSecondPlayer() {
+        println("Second player's name:")
+        secondPlayerName = readln()
+        createGameBoard()
+    }
+
+    private fun createGameBoard() {
+        println("Set the board dimensions (Rows x Columns)")
+        println("Press Enter for default (6 x 7)")
+        val input = readln().replace("\t", "").replace(" ", "")
+        if (input.isBlank()) {
+            createLists()
+            return
+        }
+        val regex = """(?<rws>\d+)[Xx](?<clmns>\d+)""".toRegex()
+        val matchResult = regex.find(input)
+        if (matchResult == null || input.length > matchResult.value.length) {
+            println("Invalid input")
+            createGameBoard()
+            return
+        }
+        try {
+            rows = matchResult.groups["rws"]?.value?.toInt()!!
+            columns = matchResult.groups["clmns"]?.value?.toInt()!!
+        } catch (e: Exception) {
+            println("Invalid input")
+            createGameBoard()
+            return
+        }
+        if (rows !in 5..9) {
+            println("Board rows should be from 5 to 9")
+            createGameBoard()
+            return
+        } else if (columns !in 5..9) {
+            println("Board columns should be from 5 to 9")
+            createGameBoard()
+            return
+        }
+        createLists()
+    }
+
+    private fun createLists() {
+        println("$firstPlayerName VS $secondPlayerName")
+        println("$rows X $columns board")
+        for (i in 1..rows * columns) {
+            myList.add(" ")
+        }
+        for (j in 0 until rows) {
+            listOfIndeces.add(mutableListOf())
+            for (k in 0 until columns) {
+                listOfIndeces[j].add(j * columns + k)
+            }
+        }
+    }
+
+    fun printBoard() {
+        repeat(columns) { print(" ${it + 1}") }
+        println()
+        var start = 0
+        for (row in 1..rows) {
+            print("║")
+            start = (row - 1) * columns
+            print(myList.subList(start, start + columns).joinToString("║"))
+            println("║")
+        }
+        print("╚")
+        repeat(columns - 1) { print("═╩") }
+        println("═╝")
+    }
+
+    fun playGame() {
+        if (whoseTurn) {
+            println("$firstPlayerName's turn:")
+        } else {
+            println("$secondPlayerName's turn:")
+        }
+        input = ""
+        input = readln()
+        if (input.lowercase() == "end") {
+            println("Game over!")
+            return
+        }
+        checkInput(input)
+        if (resultArray.joinToString("").length == rows * columns) {
+            println("It is a draw")
+            println("Game over!")
+            return
+        }
+        if (condition == "won") {
+            if (!whoseTurn) {
+                println("Player $firstPlayerName won")
+            } else {
+                println("Player $secondPlayerName won")
+            }
+            println("Game over!")
+            return
+        }
+        playGame()
+    }
+
+    private fun checkInput(str: String) {
+        val regex = """\D""".toRegex()
+        val matchResult = regex.find(str)
+        if (matchResult != null) {
+            println("Incorrect column number")
+            return
+        }
+        var index = 0
+        try {
+            index = str.toInt()
+        } catch (e: Exception) {
+            println("Incorrect column number")
+            return
+        }
+        if (index !in 1..columns) {
+            println("The column number is out of range (1 - $columns)")
+            return
+        }
+        var psn = 0
+        if (resultArray[index - 1].length == rows) {
+            println("Column $index is full")
+            return
+        }
+        if (whoseTurn) {
+            resultArray[index - 1].append("o")
+            psn = columns * (rows - resultArray[index - 1].length) + index - 1
+            myList[psn] = "o"
+            isWinningCondition(index - 1, psn, "o")
+            whoseTurn = false
+        } else {
+            resultArray[index - 1].append("*")
+            psn = columns * (rows - resultArray[index - 1].length) + index - 1
+            myList[psn] = "*"
+            isWinningCondition(index - 1, psn, "*")
+            whoseTurn = true
+        }
+        printBoard()
+
+    }
+
+    // num1 - index of element in resultArray;   num2 - index of element in myList
+    private fun isWinningCondition(num1: Int, num2: Int, symbl: String) {
+        if (resultArray.joinToString("").length < 7) return
+        if (resultArray[num1].toString().contains("$symbl$symbl$symbl$symbl")) {
+            condition = "won"
+            return
+        }
+        if (myList.subList((rows - resultArray[num1].length) * columns,
+                (rows - resultArray[num1].length) * columns + columns - 1).joinToString("")
+                .contains("$symbl$symbl$symbl$symbl")) {
+            condition = "won"
+            return
+        }
+
+        val increasLine = mutableListOf(num2)
+        var nextIndex = num2
+        var currentRow = num2 / columns
+
+        for (i in 1..3) {
+            nextIndex -= columns - 1
+            if (nextIndex >= 0 && nextIndex / columns != currentRow) {
+                increasLine.add(nextIndex)
+                currentRow = nextIndex / columns
+            }
+        }
+
+        nextIndex = num2
+        currentRow = num2 / columns
+
+        for (i in 1..3) {
+            nextIndex += columns - 1
+            if (nextIndex < rows * columns && nextIndex / columns != currentRow) {
+                increasLine.add(nextIndex)
+                currentRow = nextIndex / columns
+            }
+        }
+
+        val result1 = StringBuilder("")
+
+        for (num in increasLine.sorted()) {
+            result1.append(myList[num])
+        }
+        if (result1.toString().contains("$symbl$symbl$symbl$symbl")) {
+            condition = "won"
+            return
+        }
+
+        val decreaseList = mutableListOf(num2)
+
+        nextIndex = num2
+        currentRow = num2 / columns
+
+        for (i in 1..3) {
+            nextIndex -= columns + 1
+            if (nextIndex >= 0 && nextIndex / columns == currentRow - 1) {
+                decreaseList.add(nextIndex)
+                currentRow = nextIndex / columns
+            }
+        }
+
+        nextIndex = num2
+        currentRow = num2 / columns
+
+        for (i in 1..3) {
+            nextIndex += columns + 1
+            if (nextIndex < rows * columns && nextIndex / columns == currentRow + 1) {
+                decreaseList.add(nextIndex)
+                currentRow = nextIndex / columns
+            }
+        }
+
+        if (decreaseList.size < 4 && increasLine.size < 4) return
+
+        val result2 = StringBuilder("")
+
+        for (num in decreaseList.sorted()) {
+            result2.append(myList[num])
+        }
+        if (result2.toString().contains("$symbl$symbl$symbl$symbl")) {
+            condition = "won"
+            return
+        }
+    }
+
+}
+
