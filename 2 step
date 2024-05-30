@@ -1,0 +1,86 @@
+package connectfour
+
+fun main() {
+    val game = ConnectFour()
+    game.greeting()
+    game.printBoard()
+}
+
+class ConnectFour {
+
+    private var firstPlayer = "Unknown"
+    private var secondPlayer = "Unknown"
+    private var rows = 6
+    private var columns = 7
+
+
+    fun greeting() {
+        println("Connect Four")
+        createFirstPlayer()
+    }
+
+    private fun createFirstPlayer() {
+        println("First player's name:")
+        firstPlayer = readln()
+        createSecondPlayer()
+    }
+
+    private fun createSecondPlayer() {
+        println("Second player's name:")
+        secondPlayer = readln()
+        createGameBoard()
+    }
+
+    private fun createGameBoard() {
+        println("Set the board dimensions (Rows x Columns)")
+        println("Press Enter for default (6 x 7)")
+        val input = readln().replace("\t", "").replace(" ", "")
+        if (input.isBlank()) {
+            println("$firstPlayer VS $secondPlayer")
+            println("$rows X $columns board")
+            return
+        }
+        val regex = """(?<rws>\d+)[Xx](?<clmns>\d+)""".toRegex()
+        val matchResult = regex.find(input)
+        if (matchResult == null || input.length > matchResult.value.length) {
+            println("Invalid input")
+            createGameBoard()
+        }
+        try {
+            if (matchResult != null) {
+                rows = matchResult.groups["rws"]?.value?.toInt()!!
+                columns = matchResult.groups["clmns"]?.value?.toInt()!!
+            }
+        } catch (e: Exception) {
+            println("Invalid input")
+            createGameBoard()
+        }
+        if (rows !in 5..9) {
+            println("Board rows should be from 5 to 9")
+            createGameBoard()
+        } else if (columns !in 5..9) {
+            println("Board columns should be from 5 to 9")
+            createGameBoard()
+        }
+
+        println("$firstPlayer VS $secondPlayer")
+        println("$rows X $columns board")
+    }
+
+    fun printBoard() {
+        val myArray = Array(rows * columns) { " " }
+        repeat(columns) { print(" ${it + 1}") }
+        println()
+        for (row in 1..rows) {
+            print("║")
+            for (column in 1..columns) {
+                print(myArray[row * column - 1])
+                print("║")
+            }
+            println()
+        }
+        print("╚")
+        repeat(columns - 1) { print("═╩") }
+        println("═╝")
+    }
+}
