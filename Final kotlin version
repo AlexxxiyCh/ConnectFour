@@ -1,0 +1,370 @@
+package connectfour
+
+import kotlin.random.Random
+
+fun main() {
+
+    val game = ConnectFour()
+    game.greeting()
+}
+
+class ConnectFour {
+
+
+    private var firstPlayerName = "Unknown"
+    private var secondPlayerName = "Unknown"
+
+    private var rows = 6
+    private var columns = 7
+
+    private var numberOfGames = 1
+    private var currentGame = 0
+
+    private var firstPlayerScore = 0
+    private var secondPlayerScore = 0
+
+    private var condition = "playing"
+
+    // List for printBoard
+    private val myList = mutableListOf<String>()
+
+    private val listOfIndeces: MutableList<MutableList<Int>> = mutableListOf()
+
+    // Array for indicating results of steps
+    private val resultArray = Array(columns) { StringBuilder("") }
+
+    // if true - first player's turn;  false - second player's turn
+    private var whoseTurn = true
+
+    fun greeting() {
+        println("Connect Four")
+        createFirstPlayer()
+    }
+
+    private fun createFirstPlayer() {
+        println("First player's name:")
+        firstPlayerName = readln()
+        createSecondPlayer()
+    }
+
+    private fun createSecondPlayer() {
+        println("Second player's name:")
+        secondPlayerName = readln()
+        createGameBoard()
+    }
+
+    private fun createGameBoard() {
+        println("Set the board dimensions (Rows x Columns)")
+        println("Press Enter for default (6 x 7)")
+        val input = readln().replace("\t", "").replace(" ", "")
+        if (input.isBlank()) {
+            startGame()
+            return
+        }
+        val regex = """(?<rws>\d+)[Xx](?<clmns>\d+)""".toRegex()
+        val matchResult = regex.find(input)
+        if (matchResult == null || input.length > matchResult.value.length) {
+            println("Invalid input")
+            createGameBoard()
+            return
+        }
+        try {
+            rows = matchResult.groups["rws"]?.value?.toInt()!!
+            columns = matchResult.groups["clmns"]?.value?.toInt()!!
+        } catch (e: Exception) {
+            println("Invalid input")
+            createGameBoard()
+            return
+        }
+        if (rows !in 5..9) {
+            println("Board rows should be from 5 to 9")
+            createGameBoard()
+            return
+        } else if (columns !in 5..9) {
+            println("Board columns should be from 5 to 9")
+            createGameBoard()
+            return
+        }
+        startGame()
+    }
+
+    private fun createLists() {
+        myList.clear()
+        for (i in 1..rows * columns) {
+            myList.add(" ")
+        }
+        listOfIndeces.clear()
+        for (j in 0 until rows) {
+            listOfIndeces.add(mutableListOf())
+            for (k in 0 until columns) {
+                listOfIndeces[j].add(j * columns + k)
+            }
+        }
+        resultArray.forEach { it.clear() }
+    }
+
+    private fun startGame() {
+        createLists()
+        println("""
+        Do you want to play single or multiple games?
+        For a single game, input 1 or press Enter
+        Input a number of games:
+        """.trimIndent())
+        val input = readln()
+        if (input.isBlank()) {
+            println("$firstPlayerName VS $secondPlayerName")
+            println("$rows X $columns board")
+            println("Single game")
+            whoseTurn = Random.nextBoolean()
+            printBoard()
+            playGame()
+            return
+        }
+        val regex = """\D""".toRegex()
+        val matchResult = regex.find(input)
+        if (matchResult != null || input == "0") {
+            println("Invalid input")
+            startGame()
+            return
+        }
+        numberOfGames = input.toInt()
+        println("$firstPlayerName VS $secondPlayerName")
+        println("$rows X $columns board")
+        if (numberOfGames == 1) {
+            println("Single game")
+        } else {
+            println("Total $numberOfGames games")
+            currentGame++
+            println("Game #$currentGame")
+        }
+
+        printBoard()
+        playGame()
+    }
+
+    private fun endGame() {
+        createLists()
+        if (numberOfGames == 1) {
+            println("Game over!")
+        } else if (numberOfGames > 1 && numberOfGames > currentGame) {
+            condition = "playing"
+            println("Score")
+            print("$firstPlayerName: ")
+            print("$firstPlayerScore ")
+            print("${secondPlayerName}: ")
+            println("$secondPlayerScore")
+            currentGame++
+            println("Game #$currentGame")
+
+            printBoard()
+            //whoseTurn = Random.nextBoolean()
+            playGame()
+        } else if (numberOfGames == currentGame) {
+            println("Score")
+            print("$firstPlayerName: ")
+            print("$firstPlayerScore ")
+            print("${secondPlayerName}: ")
+            println("$secondPlayerScore")
+            println("Game over!")
+        }
+    }
+
+    private fun printBoard() {
+        repeat(columns) { print(" ${it + 1}") }
+        println()
+        var start = 0
+        for (row in 1..rows) {
+            print("║")
+            start = (row - 1) * columns
+            print(myList.subList(start, start + columns).joinToString("║"))
+            println("║")
+        }
+        print("╚")
+        repeat(columns - 1) { print("═╩") }
+        println("═╝")
+    }
+
+    fun playGame() {
+        if (whoseTurn) {
+            println("$firstPlayerName's turn:")
+        } else {
+            println("$secondPlayerName's turn:")
+        }
+        val input = readln()
+        if (input.lowercase() == "end") {
+            println("Game over!")
+            return
+        }
+        checkInput(input)
+
+        if (condition == "won") {
+            if (!whoseTurn) {
+                println("Player $firstPlayerName won")
+                firstPlayerScore += 2
+                endGame()
+                return
+            } else {
+                println("Player $secondPlayerName won")
+                secondPlayerScore += 2
+                endGame()
+                return
+            }
+        }
+
+        playGame()
+
+    }
+
+    private fun checkInput(str: String) {
+        val regex = """\D""".toRegex()
+        val matchResult = regex.find(str)
+        if (matchResult != null) {
+            println("Incorrect column number")
+            return
+        }
+        var index = 0
+        try {
+            index = str.toInt()
+        } catch (e: Exception) {
+            println("Incorrect column number")
+            return
+        }
+        if (index !in 1..columns) {
+            println("The column number is out of range (1 - $columns)")
+            return
+        }
+        var psn = 0
+        if (resultArray[index - 1].length == rows) {
+            println("Column $index is full")
+            return
+        }
+        if (whoseTurn) {
+            resultArray[index - 1].append("o")
+            psn = columns * (rows - resultArray[index - 1].length) + index - 1
+            myList[psn] = "o"
+            isWinningCondition(index - 1, psn)
+            whoseTurn = false
+        } else {
+            resultArray[index - 1].append("*")
+            psn = columns * (rows - resultArray[index - 1].length) + index - 1
+            myList[psn] = "*"
+            isWinningCondition(index - 1, psn)
+            whoseTurn = true
+        }
+        printBoard()
+        if (resultArray.joinToString("").length == rows * columns) {
+            println("It is a draw")
+            firstPlayerScore++
+            secondPlayerScore++
+            endGame()
+            return
+        }
+    }
+
+    // num1 - index of element in resultArray;   num2 - index of element in myList
+    private fun isWinningCondition(num1: Int, num2: Int) {
+
+        if (resultArray.joinToString("").length < 6) return
+
+        if (resultArray[num1].toString().contains("****") || resultArray[num1].toString().contains("oooo")) {
+            condition = "won"
+            return
+        }
+        val checkStr = myList.subList((rows - resultArray[num1].length) * columns,(rows - resultArray[num1].length) * columns + columns).joinToString("")
+
+        if (checkStr.contains("****") || checkStr.contains("oooo")) {
+            condition = "won"
+            return
+        }
+
+        val clmNum = num1 + 1
+        val rowNum = num2 / columns + 1
+
+        val limit1 = minOf(rowNum - 1, columns - clmNum)
+        val limit2 = minOf(rows - rowNum, clmNum - 1)
+        val limit3 = minOf(rowNum - 1, clmNum - 1)
+        val limit4 = minOf(rows - rowNum, columns - clmNum)
+
+        val increasingLine = mutableListOf(num2)
+
+        // check position in direction to NE
+        var nextIndex1 = num2
+        var currentRow1 = num2 / columns
+
+        for (i in 0..limit1) {
+            nextIndex1 -= (columns - 1)
+            if (nextIndex1 >= 0 && nextIndex1 / columns != currentRow1) {
+                increasingLine.add(nextIndex1)
+                currentRow1 = nextIndex1 / columns
+            }
+        }
+
+        // check position in direction to SW
+        var nextIndex2 = num2
+        var currentRow2 = num2 / columns
+
+        for (i in 0..limit2) {
+            nextIndex2 += columns - 1
+            if (nextIndex2 < rows * columns && nextIndex2 / columns != currentRow2 ) {
+                increasingLine.add(nextIndex2)
+                currentRow2 = nextIndex2 / columns
+            }
+        }
+
+        if (increasingLine.size > 3) {
+            val result1 = StringBuilder("")
+
+            for (num in increasingLine.sorted()) {
+                result1.append(myList[num])
+            }
+
+            if (result1.toString().contains("****") || result1.toString().contains("oooo")) {
+                condition = "won"
+            }
+
+        }
+
+        if (condition == "won") return
+
+        val decreasingLine = mutableListOf(num2)
+
+        // check position in direction to NW
+        var nextIndex3 = num2
+        var currentRow3 = num2 / columns
+
+        for (i in 0..limit3) {
+            nextIndex3 -= columns + 1
+            if (nextIndex3 >= 0 && nextIndex3 / columns == currentRow3 - 1) {
+                decreasingLine.add(nextIndex3)
+                currentRow3 = nextIndex3 / columns
+            }
+        }
+
+        // check position in direction to SE
+        var nextIndex4 = num2
+        var currentRow4 = num2 / columns
+
+        for (i in 0..limit4) {
+            nextIndex4 += columns + 1
+            if (nextIndex4 < rows * columns && nextIndex4 / columns == currentRow4 + 1) {
+                decreasingLine.add(nextIndex4)
+                currentRow4 = nextIndex4 / columns
+            }
+        }
+
+        if (decreasingLine.size < 4) return
+
+        val result2 = StringBuilder("")
+
+        for (num in decreasingLine.sorted()) {
+            result2.append(myList[num])
+        }
+
+        if (result2.toString().contains("****") || result2.toString().contains("oooo")) {
+            condition = "won"
+        }
+
+    }
+
+}
+
